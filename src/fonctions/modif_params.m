@@ -46,6 +46,7 @@ function [errors, convergence] = modif_params(params, to_modif, valspace, func_m
             errors(i_pts) = error / convergence(i_pts);
             convergence(i_pts) = 100 * convergence(i_pts) / valspace.num;
         end
-        fprintf("\b\b\b%02d%%", round(i_pts/valspace.pts*100))
+        fprintf("\b\b\b%02d%%", min(99, round(i_pts/valspace.pts*100)))
     end
+    fprintf(repmat('\b', 1, 16) + " terminé\n")
 end

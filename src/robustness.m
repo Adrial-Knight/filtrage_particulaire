@@ -1,18 +1,11 @@
 %% Initialisation
-close all; clear; clc;
+close all; clear; clc; dbstop if error;
 addpath("data/", "fonctions/", "fonctions/filtrage/")
 load("data/trajectoire_reelle.mat", "Xvrai");
-load("data/mesures_radar.mat", "Z");
+Z.non_bruite = load("data/mesures_radar_non_bruitees.mat").Z;
+Z.bruit      = load("data/mesures_radar.mat", "Z").Z;
 
 %% Parametres
-% variation de l'initialisation du vecteur d'état (position x)
-valspace.init.num    = 10;   % nombre de réalisation pour un point
-valspace.init.values = linspace(1500, 8000, 50);   % points à tester
-
-% variation du nombre de particules
-valspace.part.num    = 20;   % nombre de réalisation pour un point
-valspace.part.values = logspace(1, 3, 50);   % points à tester
-
 % variance des bruits d'état et de mesure
 sigma.u = 2;            % m/s^2
 sigma.r = 50;           % m
@@ -21,63 +14,86 @@ sigma.theta = pi/100;   % radian
 T = 1;      % temps d'échantillonage en seconde
 N = 1000;   % nombre de particules par défaut
 
+% variation de l'initialisation du vecteur d'état (position x)
+valspace.init.num    = 10;   % nombre de réalisation pour un point
+valspace.init.values = linspace(1500, 8000, 50);   % points à tester
+
+% variation du nombre de particules
+valspace.part.num    = 20;   % nombre de réalisation pour un point
+valspace.part.values = linspace(10, 1000, 50);   % points à tester
+
+% écart-type des bruits de mesure
+valspace.mesure.num = 10;
+valspace.mesure.r.values = linspace(0.1*sigma.r, 1.9*sigma.r, 20);
+valspace.mesure.theta.values = linspace(0.1*sigma.theta, 1.9*sigma.theta, 20);
+
+% écart-type des bruits de modele
+valspace.modele.num = 10;
+valspace.modele.values = linspace(0.1*sigma.u, 1.9*sigma.u, 50);
+
 %% Constantes
 % Matrice d'etat
 Phi = kron(eye(2), [1, T; 0, 1]);  % evolution
 G   = kron(eye(2), [T^2/2; T]);    % gain du bruit
 
+%% Simulations sur les données radar bruitées
 % arguments par defauts
-arg = struct("init", Xvrai(:, 1), "Xvrai", Xvrai, "Z", Z, "N", N, ...
+arg = struct("init", Xvrai(:, 1), "Xvrai", Xvrai, "Z", Z.bruit, "N", N, ...
              "Phi", Phi, "G", G, "sigma", sigma);
 
-%% Simulations
 % Variation de l'initialisation
+fprintf("Initialisation:  ")
 modif_init = @(value, init) [value; init(2:4)];
-fprintf("Initialisation: ")
 [variations.init, convergence.init] = modif_params(arg, "init", valspace.init, modif_init);
-fprintf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b terminé\n")
 
 % Nombre de particules
-fprintf("Nb particules:  ")
+fprintf("Nb particules:   ")
 modif_N = @(value, N) round(value);
 [variations.N, convergence.N] = modif_params(arg, "N", valspace.part, modif_N);
-fprintf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b terminé\n")
+
+%% Simulations sur les données radars non bruitées
+% arguments par defauts
+arg = struct("init", Xvrai(:, 1), "Xvrai", Xvrai, "Z", Z.non_bruite, ...
+             "N", N, "Phi", Phi, "G", G, "sigma", sigma);
+
+% Bruits de mesure
+fprintf("Variance mesure: ")
+variations.mesure = modif_data_radar(arg, valspace.mesure);
+
+% Bruit de modele
+fprintf("Variance modele: ")
+modif_modele = @(value, sigma) struct("u", value, "r", sigma.r, "theta", sigma.theta);
+[variations.modele, convergence.modele] = modif_params(arg, "sigma", valspace.modele, modif_modele);
 
 %% Sauvegarde
 save(get_save_path())
 
 %% Affichage
-figure("Position", [200, 150, 940, 480])
+plot_("Position x initiale",  valspace.init.values,   variations.init,   convergence.init)
+plot_("Nombre de particules", valspace.part.values,   variations.N,      convergence.N)
+plot_("\sigma^2_{modele}",    valspace.modele.values, variations.modele, convergence.modele)
 
-% variation de l'initialisation
-subplot(221)
-plot(valspace.init.values, variations.init, "-b", "MarkerFaceColor", "b")
-grid on
-xlabel("position x initiale")
-ylabel("Erreur quadratique")
+% variation des ecart types des bruit de mesure
+figure("Name", "Variation des écart types de bruit de mesure")
+imagesc(valspace.mesure.r.values, valspace.mesure.theta.values, variations.mesure);
 title("Erreur d'estimation")
+xlabel("\sigma^2_r"); ylabel("\sigma^2_{\theta}")
+colorbar
 
-subplot(222)
-plot(valspace.init.values, convergence.init, "o")
-xlim([valspace.init.values(1), valspace.init.values(end)])
-ylim([0, 110])
-grid on
-xlabel("position x initiale")
-ylabel("%")
-title("Taux de convergence")
-
-% variation du nombre de particules
-subplot(223)
-semilogx(valspace.part.values, variations.N, "-b", "MarkerFaceColor", "b")
-grid on
-xlabel("Nombre de particules")
-ylabel("Erreur quadratique")
-title("Erreur d'estimation")
-
-subplot(224)
-semilogx(valspace.part.values, convergence.N, "o")
-ylim([0, 110])
-grid on
-xlabel("Nombre de particules")
-ylabel("%")
-title("Taux de convergence")
+function plot_(x_label, values, variations, convergences)
+    figure("Name", x_label, "Position", [200, 150, 940, 300])
+    subplot(121)
+    plot(values, variations, "-b", "MarkerFaceColor", "b")
+    grid on
+    xlabel(x_label)
+    ylabel("||.||_2")
+    title("Erreur d'estimation")
+    
+    subplot(122)
+    plot(values, convergences, "o")
+    ylim([0, 110])
+    grid on
+    xlabel("\sigma^2_{modele}")
+    ylabel("%")
+    title("Taux de convergence")
+end
