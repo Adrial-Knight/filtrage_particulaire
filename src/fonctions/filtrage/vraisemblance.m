@@ -6,7 +6,7 @@ function p = vraisemblance(x, z, sigma)
 % Entrée:
 %   x (4xn double) - Vecteur d'état [x; x'; y; y']
 %   z (2xn double) - Observations [r; theta]
-%   sigma (struct) - Variance avec les champs r et theta
+%   sigma (struct) - Ecart-type avec les champs r et theta
 %
 % Sortie:
 %   p (1xn double) - Vraisemblance entre les observations et le modèle

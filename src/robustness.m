@@ -19,17 +19,17 @@ valspace.init.num    = 10;   % nombre de réalisation pour un point
 valspace.init.values = linspace(1500, 8000, 50);   % points à tester
 
 % variation du nombre de particules
-valspace.part.num    = 20;   % nombre de réalisation pour un point
+valspace.part.num    = 10;   % nombre de réalisation pour un point
 valspace.part.values = linspace(10, 1000, 50);   % points à tester
 
 % écart-type des bruits de mesure
-valspace.mesure.num = 10;
-valspace.mesure.r.values = linspace(0.1*sigma.r, 1.9*sigma.r, 20);
-valspace.mesure.theta.values = linspace(0.1*sigma.theta, 1.9*sigma.theta, 20);
+valspace.mesure.num = 10;    % nombre de réalisation pour un point
+valspace.mesure.r.values = linspace(0, sigma.r, 20);
+valspace.mesure.theta.values = linspace(0, sigma.theta, 20);
 
 % écart-type des bruits de modele
 valspace.modele.num = 10;
-valspace.modele.values = linspace(0.1*sigma.u, 1.9*sigma.u, 50);
+valspace.modele.values = linspace(0, 200, 50);
 
 %% Constantes
 % Matrice d'etat
@@ -57,11 +57,11 @@ arg = struct("init", Xvrai(:, 1), "Xvrai", Xvrai, "Z", Z.non_bruite, ...
              "N", N, "Phi", Phi, "G", G, "sigma", sigma);
 
 % Bruits de mesure
-fprintf("Variance mesure: ")
+fprintf("Ecart-type mesure: ")
 variations.mesure = modif_data_radar(arg, valspace.mesure);
 
 % Bruit de modele
-fprintf("Variance modele: ")
+fprintf("Ecart-type modele: ")
 modif_modele = @(value, sigma) struct("u", value, "r", sigma.r, "theta", sigma.theta);
 [variations.modele, convergence.modele] = modif_params(arg, "sigma", valspace.modele, modif_modele);
 
@@ -69,31 +69,43 @@ modif_modele = @(value, sigma) struct("u", value, "r", sigma.r, "theta", sigma.t
 save(get_save_path())
 
 %% Affichage
-plot_("Position x initiale",  valspace.init.values,   variations.init,   convergence.init)
-plot_("Nombre de particules", valspace.part.values,   variations.N,      convergence.N)
-plot_("\sigma^2_{modele}",    valspace.modele.values, variations.modele, convergence.modele)
+set(groot, 'defaultAxesFontSize', 11);
+plot_("Position x initiale",  valspace.init.values,   variations.init,   convergence.init, "pos_x_init")
+plot_("Nombre de particules", valspace.part.values,   variations.N,      convergence.N, "nb_part")
+plot_("\sigma_{modele}",    valspace.modele.values, variations.modele, convergence.modele, "sigma2model")
 
 % variation des ecart types des bruit de mesure
+set(groot, 'defaultAxesFontSize', 9);
 figure("Name", "Variation des écart types de bruit de mesure")
 imagesc(valspace.mesure.r.values, valspace.mesure.theta.values, variations.mesure);
-title("Erreur d'estimation")
-xlabel("\sigma^2_r"); ylabel("\sigma^2_{\theta}")
+% title("Erreur d'estimation")
+xlabel("\sigma_r"); ylabel("\sigma_{\theta}")
 colorbar
+exportgraphics(gca, "../fig/robustness/" + "vars_error" + ".pdf")
 
-function plot_(x_label, values, variations, convergences)
+function plot_(x_label, values, variations, convergences, filename)
+    set(groot, 'defaultAxesFontSize', 11);
     figure("Name", x_label, "Position", [200, 150, 940, 300])
     subplot(121)
     plot(values, variations, "-b", "MarkerFaceColor", "b")
     grid on
     xlabel(x_label)
     ylabel("||.||_2")
-    title("Erreur d'estimation")
+    if isstring(filename)
+        exportgraphics(gca, "../fig/robustness/" + filename + "_error" + ".pdf")
+    else
+        title("Erreur d'estimation")
+    end
     
     subplot(122)
     plot(values, convergences, "o")
     ylim([0, 110])
     grid on
-    xlabel("\sigma^2_{modele}")
+    xlabel(x_label)
     ylabel("%")
-    title("Taux de convergence")
+    if isstring(filename)
+        exportgraphics(gca, "../fig/robustness/" + filename + "_convg" + ".pdf")
+    else
+        title("Taux de convergence")
+    end
 end

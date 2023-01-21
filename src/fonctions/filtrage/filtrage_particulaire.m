@@ -10,7 +10,7 @@ function X_mean = filtrage_particulaire(init, Z, N, Phi, G, sigma)
 %   N (1x1 double)    - Nombre de particules à simuler
 %   Phi (4x4 double)  - Matrice d'état d'évolution
 %   G (4x2 double)    - Matrice d'état du gain du bruit d'état
-%   sigma (struct)    - contient les champs (variances) u, r et theta
+%   sigma (struct)    - contient les champs (écart-type) u, r et theta
 %
 % Sortie:
 %   X_mean (4xM double) - Estimations moyennes des particules filtrées
