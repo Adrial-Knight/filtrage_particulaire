@@ -4,7 +4,7 @@ Ce dépôt contient le TP réalisé dans le cadre de l'étude du filtrage partic
 
 ## Structure du dépôt
 Le dépôt se compose de deux dossiers :
-- `docs` : contient le sujet et le rapport ce travail
+- `docs` : contient le sujet et le rapport de ce travail
 - `src` : contient les codes MATLAB utilisés et développés
 
 ## Utilisation du code
