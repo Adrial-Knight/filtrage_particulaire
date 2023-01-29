@@ -14,8 +14,7 @@ N = 1000;   % nombre de particules
 
 %% Constantes
 % Matrice d'etat
-Phi = kron(eye(2), [1, T; 0, 1]);  % evolution
-G   = kron(eye(2), [T^2/2; T]);    % gain du bruit
+[Phi, G] = matrices_etat(T);
 
 %% Filtrage
 X_mean = filtrage_particulaire(Xvrai(:, 1), Z, N, Phi, G, sigma);
@@ -26,3 +25,21 @@ hold all
 grid on
 plot(X_mean(1, :), X_mean(3, :))
 plot(Xvrai(1, :), Xvrai(3, :))
+legend(["Estimée", "Réelle"], Location="best")
+
+%% Test
+set(groot, 'defaultAxesFontSize', 12);
+sigma.u = 0.01;
+X_mean = filtrage_particulaire(Xvrai(:, 1), Z, N, Phi, G, sigma);
+figure("Name", "sigma u: " + sigma.u)
+hold all, grid on, plot(X_mean(1, :), X_mean(3, :)), plot(Xvrai(1, :), Xvrai(3, :))
+
+sigma.u = 2;
+X_mean = filtrage_particulaire(Xvrai(:, 1), Z, N, Phi, G, sigma);
+figure("Name", "sigma u: " + sigma.u)
+hold all, grid on, plot(X_mean(1, :), X_mean(3, :)), plot(Xvrai(1, :), Xvrai(3, :))
+
+sigma.u = 200;
+X_mean = filtrage_particulaire(Xvrai(:, 1), Z, N, Phi, G, sigma);
+figure("Name", "sigma u: " + sigma.u)
+hold all, grid on, plot(X_mean(1, :), X_mean(3, :)), plot(Xvrai(1, :), Xvrai(3, :))

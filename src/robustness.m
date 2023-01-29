@@ -24,8 +24,8 @@ valspace.part.values = linspace(10, 1000, 50);   % points à tester
 
 % écart-type des bruits de mesure
 valspace.mesure.num = 10;    % nombre de réalisation pour un point
-valspace.mesure.r.values = linspace(0, sigma.r, 20);
-valspace.mesure.theta.values = linspace(0, sigma.theta, 20);
+valspace.mesure.r.values = linspace(0, sigma.r, 10);
+valspace.mesure.theta.values = linspace(0, sigma.theta, 10);
 
 % écart-type des bruits de modele
 valspace.modele.num = 10;
@@ -33,8 +33,7 @@ valspace.modele.values = linspace(0, 200, 50);
 
 %% Constantes
 % Matrice d'etat
-Phi = kron(eye(2), [1, T; 0, 1]);  % evolution
-G   = kron(eye(2), [T^2/2; T]);    % gain du bruit
+[Phi, G] = matrices_etat(T);
 
 %% Simulations sur les données radar bruitées
 % arguments par defauts
@@ -65,37 +64,29 @@ fprintf("Ecart-type modele: ")
 modif_modele = @(value, sigma) struct("u", value, "r", sigma.r, "theta", sigma.theta);
 [variations.modele, convergence.modele] = modif_params(arg, "sigma", valspace.modele, modif_modele);
 
-%% Sauvegarde
+%% Sauvegarde du workspace
 save(get_save_path())
 
 %% Affichage
-set(groot, 'defaultAxesFontSize', 11);
-plot_("Position x initiale",  valspace.init.values,   variations.init,   convergence.init, "pos_x_init")
-plot_("Nombre de particules", valspace.part.values,   variations.N,      convergence.N, "nb_part")
-plot_("\sigma_{modele}",    valspace.modele.values, variations.modele, convergence.modele, "sigma2model")
+plot_("Position x initiale",  valspace.init.values,   variations.init,   convergence.init)
+plot_("Nombre de particules", valspace.part.values,   variations.N,      convergence.N)
+plot_("\sigma_{modele}",    valspace.modele.values, variations.modele, convergence.modele)
 
 % variation des ecart types des bruit de mesure
-set(groot, 'defaultAxesFontSize', 9);
 figure("Name", "Variation des écart types de bruit de mesure")
 imagesc(valspace.mesure.r.values, valspace.mesure.theta.values, variations.mesure);
-% title("Erreur d'estimation")
+title("Erreur d'estimation")
 xlabel("\sigma_r"); ylabel("\sigma_{\theta}")
 colorbar
-exportgraphics(gca, "../fig/robustness/" + "vars_error" + ".pdf")
 
-function plot_(x_label, values, variations, convergences, filename)
-    set(groot, 'defaultAxesFontSize', 11);
+function plot_(x_label, values, variations, convergences)
     figure("Name", x_label, "Position", [200, 150, 940, 300])
     subplot(121)
     plot(values, variations, "-b", "MarkerFaceColor", "b")
     grid on
     xlabel(x_label)
     ylabel("||.||_2")
-    if isstring(filename)
-        exportgraphics(gca, "../fig/robustness/" + filename + "_error" + ".pdf")
-    else
-        title("Erreur d'estimation")
-    end
+    title("Erreur d'estimation")
     
     subplot(122)
     plot(values, convergences, "o")
@@ -103,9 +94,5 @@ function plot_(x_label, values, variations, convergences, filename)
     grid on
     xlabel(x_label)
     ylabel("%")
-    if isstring(filename)
-        exportgraphics(gca, "../fig/robustness/" + filename + "_convg" + ".pdf")
-    else
-        title("Taux de convergence")
-    end
+    title("Taux de convergence")
 end
